@@ -16,7 +16,7 @@ interface Props {
   runningSessionIds: Set<string>;
   unreadSessionIds: Set<string>;
   initiallyCollapsed?: boolean;
-  onSelectSession: (session: SessionInfo, isRestore?: boolean, entryId?: string, blockIndex?: number) => void;
+  onSelectSession?: (session: SessionInfo, entryId?: string, blockIndex?: number) => void;
   onRenamed: () => void;
   onSessionDeleted: (id: string) => void;
   renderSessionFamilyItem: (
