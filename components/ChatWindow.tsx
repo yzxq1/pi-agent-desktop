@@ -266,6 +266,8 @@ function ProcessDetailsGroup({ messageCount, toolCallCount, defaultExpanded = fa
   );
 }
 
+let activeNoticeDismiss: ((id: string) => void) | null = null;
+
 export function ChatWindow({ session, workspaceKind, searchTarget, onSearchTargetHandled, initialScrollPosition, onScrollPositionChange, sessionRunning, newSessionCwd, newSessionDraftKey, onAgentEnd, onAttentionNeeded, onSessionCreated, onSessionForked, modelsRefreshKey, workspaceUnavailable, onRecheckWorkspace, chatInputRef, onBranchDataChange, onSystemPromptChange, onSystemToolsChange, onSystemInfoLoaderChange, onSessionStatsChange, onSessionStatsPanelOpen, onOpenSettings, onOpenModelsConfig, onContextUsageChange, onOpenFile, onOpenSession, onAskInNewChat, onSelectProject, projectOptions, onProjectChange, onProjectFilesImported, quoteSelectionEnabled = true, conversationNavigatorEnabled = true, initialPrompt, onInitialPromptConsumed, soundEnabled = true, playDoneSound = () => {}, unlockAudio }: Props) {
   const { t } = useI18n();
   const isMobile = useIsMobile();
@@ -302,7 +304,7 @@ export function ChatWindow({ session, workspaceKind, searchTarget, onSearchTarge
     retryInfo, contextUsage, forkingEntryId, summarizationRetry, automation, handleSetAutomation,
     isCompacting, compactError, compactNotice, compactResult, displayModel: displayModelValue, modelSwitching, sessionStats,
     slashCommands, slashCommandsLoading, queuedMessages,
-    notices, extensionDialog, waitingExtensionDialogCount, extensionCustomUi, waitingExtensionCustomUiCount, extensionStatuses, extensionWidgets, respondToExtensionUi, sendExtensionCustomInput, setNoticePaused,
+    notices, dismissNotice, extensionDialog, waitingExtensionDialogCount, extensionCustomUi, waitingExtensionCustomUiCount, extensionStatuses, extensionWidgets, respondToExtensionUi, sendExtensionCustomInput, setNoticePaused,
     isAutoModelSelection,
     isAutoThinkingSelection,
     defaultModel,
@@ -332,6 +334,7 @@ export function ChatWindow({ session, workspaceKind, searchTarget, onSearchTarge
     onScrollPositionChange,
   });
   const sessionBusy = agentRunning || bashRunning;
+  activeNoticeDismiss = dismissNotice;
   // A chat's folder and whether it may use the computer; the server owns both.
   const chatAccess = useChatAccess(session?.id, chatOnly && Boolean(session) && !isNew, handleChatAccessRebuilt);
   const handleToggleChatUnlocked = useCallback((nextUnlocked: boolean) => {
@@ -1813,6 +1816,13 @@ function NoticeShelf({ notices, floating = false, onPauseChange }: { notices: No
           <div
             key={notice.id}
             className={`notice-shelf-item is-${notice.type}${floating ? " is-floating" : ""}`}
+            onClick={() => activeNoticeDismiss?.(notice.id)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape" || e.key === "Enter") {
+                e.preventDefault();
+                activeNoticeDismiss?.(notice.id);
+              }
+            }}
             onMouseEnter={() => onPauseChange?.(notice.id)}
             onMouseLeave={(event) => {
               if (!event.currentTarget.contains(document.activeElement)) onPauseChange?.(null);
@@ -1834,6 +1844,7 @@ function NoticeShelf({ notices, floating = false, onPauseChange }: { notices: No
               // The floating wrapper is pointerEvents:"none" (click-through by design),
               // so the toast itself must opt back into interactivity or hover events never reach it
               pointerEvents: "auto",
+              cursor: "pointer",
               marginBottom: index === notices.length - 1 ? 0 : 6,
               overflow: "hidden",
               borderRadius: "var(--radius-lg)",
@@ -1854,7 +1865,7 @@ function NoticeShelf({ notices, floating = false, onPauseChange }: { notices: No
               animation: notice.exiting
                 ? "notice-shelf-out 0.18s ease-in forwards"
                 : "notice-shelf-in 0.18s ease-out backwards",
-              padding: "0 12px",
+              padding: "0 10px 0 12px",
             }}
           >
             <span
@@ -1873,9 +1884,53 @@ function NoticeShelf({ notices, floating = false, onPauseChange }: { notices: No
             <span
               tabIndex={0}
               style={{ padding: "14px 0", minWidth: 0, maxWidth: "100%", maxHeight: NOTICE_TEXT_MAX_HEIGHT_PX, overflowY: "auto", scrollbarWidth: "thin", whiteSpace: "pre-line", wordBreak: "break-word" }}
+              onClick={(e) => {
+                if (window.getSelection()?.toString()) e.stopPropagation();
+              }}
             >
               {notice.message}
             </span>
+            <button
+              type="button"
+              className="notice-shelf-dismiss"
+              title="关闭通知"
+              aria-label="关闭通知"
+              onClick={(e) => {
+                e.stopPropagation();
+                activeNoticeDismiss?.(notice.id);
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 22,
+                height: 22,
+                padding: 0,
+                marginTop: 18,
+                marginLeft: 2,
+                flexShrink: 0,
+                background: "transparent",
+                border: "none",
+                borderRadius: "var(--radius-sm)",
+                color: "var(--text-dim)",
+                cursor: "pointer",
+                opacity: 0.6,
+                transition: "opacity var(--dur-fast), background var(--dur-fast)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = "1";
+                e.currentTarget.style.background = "var(--bg-hover, rgba(255, 255, 255, 0.08))";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = "0.6";
+                e.currentTarget.style.background = "transparent";
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
           </div>
         );
       })}

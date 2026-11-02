@@ -1275,6 +1275,10 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     });
   }, []);
 
+  const dismissNotice = useCallback((id: string) => {
+    dispatchNotice({ type: "remove", id });
+  }, []);
+
   const handleEditContent = useCallback((message: UserMessage, entryId: string) => {
     if (!session?.id) return;
     const input = opts.chatInputRef?.current;
@@ -3065,7 +3069,7 @@ export function useAgentSession(opts: UseAgentSessionOptions) {
     retryInfo, contextUsage, systemPrompt, forkingEntryId, retryLoad, dismissModelScopeWarnings,
     isCompacting, compactError, compactNotice, compactResult, currentModel, displayModel, modelSwitching, sessionStats,
     slashCommands, slashCommandsLoading, queuedMessages,
-    notices: noticeState.visible, addNotice, extensionDialog, waitingExtensionDialogCount, extensionCustomUi, waitingExtensionCustomUiCount, extensionStatuses, extensionWidgets, respondToExtensionUi, sendExtensionCustomInput,
+    notices: noticeState.visible, addNotice, dismissNotice, extensionDialog, waitingExtensionDialogCount, extensionCustomUi, waitingExtensionCustomUiCount, extensionStatuses, extensionWidgets, respondToExtensionUi, sendExtensionCustomInput,
     isAutoModelSelection: isNew && newSessionModel === null,
     isAutoThinkingSelection: isNew && newSessionThinkingLevel === null,
     defaultModel: newSessionDefaultModel,
